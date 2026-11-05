@@ -1,0 +1,52 @@
+# À placer dans .github/workflows/build-windows.yml de TON fork.
+# Compile Eglantine pour Windows (MSVC + Ninja) avec l'interface traduite (ENABLE_QT_TRANSLATION=ON).
+name: build-windows
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Install Vulkan SDK
+        shell: pwsh
+        run: ./tools/windows/install-vulkan-sdk.ps1
+
+      - name: Load MSVC environment
+        shell: pwsh
+        run: ./tools/windows/load-msvc-env.ps1
+
+      - name: Configure
+        shell: pwsh
+        run: >
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DYUZU_TESTS=OFF
+          -DYUZU_CMD=OFF
+          -DYUZU_ROOM=OFF
+          -DYUZU_ROOM_STANDALONE=OFF
+          -DENABLE_UPDATE_CHECKER=OFF
+          -DUSE_DISCORD_PRESENCE=OFF
+          -DENABLE_QT_TRANSLATION=ON
+
+      - name: Build
+        shell: pwsh
+        run: cmake --build build --parallel
+
+      - name: Collect executable
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist-out | Out-Null
+          Get-ChildItem -Recurse build -Include eglantine.exe,eden.exe,yuzu.exe | ForEach-Object { Copy-Item $_.FullName dist-out/ ; Write-Host $_.FullName }
+          Copy-Item tuned/nx2_switches.txt dist-out/ -ErrorAction SilentlyContinue
+          Copy-Item tuned/launch-tuned.cmd dist-out/ -ErrorAction SilentlyContinue
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eglantine-windows-fr
+          path: dist-out/
