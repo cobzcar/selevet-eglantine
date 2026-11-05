@@ -1,4 +1,4 @@
-# # À placer dans .github/workflows/build-windows.yml de TON fork.
+# À placer dans .github/workflows/build-windows.yml de TON fork.
 # Compile Eglantine pour Windows (MSVC + Ninja) avec l'interface traduite (ENABLE_QT_TRANSLATION=ON).
 name: build-windows
 
@@ -12,6 +12,19 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
+
+      # Le dépôt omet src/audio_core/out/ (ignoré par le .gitignore "out/").
+      # On récupère ces 4 fichiers depuis le commit de base de Selevet (zortos293/Eglantine build 31).
+      - name: Fetch missing audio_core/out sources
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path src/audio_core/out | Out-Null
+          foreach ($f in 'audio_out.cpp','audio_out.h','audio_out_system.cpp','audio_out_system.h') {
+            if (-not (Test-Path "src/audio_core/out/$f")) {
+              Invoke-WebRequest -UseBasicParsing "https://raw.githubusercontent.com/zortos293/Eglantine/badc91ebce/src/audio_core/out/$f" -OutFile "src/audio_core/out/$f"
+            }
+            if ((Get-Item "src/audio_core/out/$f").Length -lt 1000) { throw "Téléchargement invalide: $f" }
+          }
 
       - name: Install Vulkan SDK
         shell: powershell
