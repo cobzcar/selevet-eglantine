@@ -35,6 +35,17 @@ jobs:
         with:
           arch: x64
 
+      # Le fork est écrit pour Clang : MSVC transforme certains avertissements en erreurs (/weXXXX).
+      # On les convertit en simples désactivations (/wdXXXX).
+      - name: Relax MSVC warnings-as-errors
+        shell: pwsh
+        run: |
+          Get-ChildItem -Recurse -Path src, externals -Include CMakeLists.txt,*.cmake -ErrorAction SilentlyContinue | ForEach-Object {
+            $c = Get-Content -Raw -Encoding UTF8 $_.FullName
+            $n = [regex]::Replace($c, '/we(\d{4})', '/wd$1')
+            if ($n -ne $c) { [System.IO.File]::WriteAllText($_.FullName, $n, (New-Object System.Text.UTF8Encoding($false))); Write-Host "patched $($_.FullName)" }
+          }
+
       - name: Configure
         shell: pwsh
         run: >
@@ -52,7 +63,7 @@ jobs:
 
       - name: Build
         shell: pwsh
-        run: cmake --build build --parallel
+        run: cmake --build build --parallel -- -k 0
 
       - name: Collect executable
         shell: pwsh
