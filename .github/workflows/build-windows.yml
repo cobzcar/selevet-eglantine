@@ -1,4 +1,4 @@
-# À placer dans .github/workflows/build-windows.yml de TON fork.
+# # À placer dans .github/workflows/build-windows.yml de TON fork.
 # Compile Eglantine pour Windows (MSVC + Ninja) avec l'interface traduite (ENABLE_QT_TRANSLATION=ON).
 name: build-windows
 
@@ -18,14 +18,17 @@ jobs:
         run: ./tools/windows/install-vulkan-sdk.ps1
 
       - name: Load MSVC environment
-        shell: pwsh
-        run: ./tools/windows/load-msvc-env.ps1
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
 
       - name: Configure
         shell: pwsh
         run: >
           cmake -S . -B build -G Ninja
           -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_C_COMPILER=cl
+          -DCMAKE_CXX_COMPILER=cl
           -DYUZU_TESTS=OFF
           -DYUZU_CMD=OFF
           -DYUZU_ROOM=OFF
